@@ -3,6 +3,7 @@ package ipfs
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 
 	"github.com/aperturerobotics/pbobject"
 	"github.com/golang/protobuf/proto"
@@ -22,7 +23,7 @@ func NewFileShell(sh *api.Shell, objTable *pbobject.ObjectTable) *FileShell {
 
 // AddProtobufObject adds a protobuf object to IPFS and returns the hash.
 func (s *FileShell) AddProtobufObject(ctx context.Context, obj pbobject.Object) (string, error) {
-	objWrapper, err := s.objTable.Encode(obj)
+	objWrapper, err := s.objTable.Encode(ctx, obj)
 	if err != nil {
 		return "", err
 	}
@@ -33,4 +34,27 @@ func (s *FileShell) AddProtobufObject(ctx context.Context, obj pbobject.Object) 
 	}
 
 	return s.Add(bytes.NewReader(dat))
+}
+
+// GetProtobufObject gets a protobuf object from IPFS.
+func (s *FileShell) GetProtobufObject(ctx context.Context, hash string) (pbobject.Object, error) {
+	rc, err := s.Cat(hash)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = rc.Close()
+	}()
+
+	data, err := ioutil.ReadAll(rc)
+	if err != nil {
+		return nil, err
+	}
+
+	wrapper := &pbobject.ObjectWrapper{}
+	if err := proto.Unmarshal(data, wrapper); err != nil {
+		return nil, err
+	}
+
+	return s.objTable.DecodeWrapper(ctx, wrapper)
 }
