@@ -1,0 +1,21 @@
+syntax = "proto3";
+package pbobject;
+
+import "github.com/aperturerobotics/timestamp/timestamp.proto";
+import "github.com/aperturerobotics/objectenc/objectenc.proto";
+
+// ObjectWrapper wraps and stores an object.
+message ObjectWrapper {
+  // ObjectTypeCrc is the crc32 of the object type ID.
+  uint32 object_type_crc = 1;
+  // Timestamp is the time this object was wrapped.
+  timestamp.Timestamp timestamp = 2;
+  // EncBlob is the inner data of the object.
+  objectenc.EncryptedBlob enc_blob = 3;
+}
+
+// ObjectTypeID is an identifier for a type, hashed to get the object type crc.
+message ObjectTypeID {
+  // TypeUuid is the type unique identifier.
+  string type_uuid = 1;
+}
