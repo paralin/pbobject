@@ -1,13 +1,15 @@
 package pbobject
 
 import (
+	"context"
 	"fmt"
 	"sync"
 )
 
 // ObjectTable looks up known object types.
 type ObjectTable struct {
-	typeMap sync.Map // map[uint32]func() Object
+	typeMap           sync.Map // map[uint32]func() Object
+	typeEncryptionMap sync.Map // map[uint32]EncryptionConfig
 }
 
 // NewObjectTable builds a new object table.
@@ -44,8 +46,35 @@ func (o *ObjectTable) RegisterTypes(overwrite bool, ctors ...func() Object) erro
 	return nil
 }
 
-// DecodeWrapper attempts to decode the wrapped object.
-func (o *ObjectTable) DecodeWrapper(wrapper *ObjectWrapper, encConf EncryptionConfig) (Object, error) {
+// RegisterTypeEncryption registers a default encryption config for a type.
+func (o *ObjectTable) RegisterTypeEncryption(typeIDCrc uint32, encConf EncryptionConfig) {
+	o.typeEncryptionMap.Store(typeIDCrc, encConf)
+}
+
+// DecodeWrapper attempts to decode the wrapped object using the registered encryption conf for the type.
+func (o *ObjectTable) DecodeWrapper(ctx context.Context, wrapper *ObjectWrapper) (Object, error) {
+	var encConf EncryptionConfig
+	if encConfInter, ok := o.typeEncryptionMap.Load(wrapper.GetObjectTypeCrc()); ok {
+		encConf = encConfInter.(EncryptionConfig)
+	}
+	encConf.Context = ctx
+	return o.DecodeWrapperWithEncConf(wrapper, encConf)
+}
+
+// Encode attempts to encode the object using the registered encryption conf for the type.
+func (o *ObjectTable) Encode(ctx context.Context, obj Object) (*ObjectWrapper, error) {
+	var encConf EncryptionConfig
+	objType := obj.GetObjectTypeID().GetCrc32()
+	if encConfInter, ok := o.typeEncryptionMap.Load(objType); ok {
+		encConf = encConfInter.(EncryptionConfig)
+	}
+
+	encConf.Context = ctx
+	return NewObjectWrapper(obj, encConf)
+}
+
+// DecodeWrapperWithEncConf attempts to decode the wrapped object with an encryption config.
+func (o *ObjectTable) DecodeWrapperWithEncConf(wrapper *ObjectWrapper, encConf EncryptionConfig) (Object, error) {
 	key := wrapper.GetObjectTypeCrc()
 	ctorInter, ok := o.typeMap.Load(key)
 	if !ok {
