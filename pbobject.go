@@ -99,3 +99,21 @@ func (w *ObjectWrapper) DecodeToObject(obj Object, encConf EncryptionConfig) err
 
 	return nil
 }
+
+// objectTableKey is a pointer used as the key for object tables.
+var objectTableKey = &(struct{}{})
+
+// WithObjectTable attaches an object table to a context.
+func WithObjectTable(parent context.Context, table *ObjectTable) context.Context {
+	return context.WithValue(parent, objectTableKey, table)
+}
+
+// GetObjectTable returns the object table in the context.
+func GetObjectTable(ctx context.Context) *ObjectTable {
+	v := ctx.Value(objectTableKey)
+	if v == nil {
+		return nil
+	}
+
+	return v.(*ObjectTable)
+}
