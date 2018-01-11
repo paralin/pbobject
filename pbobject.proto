@@ -3,6 +3,7 @@ package pbobject;
 
 import "github.com/aperturerobotics/timestamp/timestamp.proto";
 import "github.com/aperturerobotics/objectenc/objectenc.proto";
+import "github.com/aperturerobotics/objectsig/objectsig.proto";
 
 // ObjectWrapper wraps and stores an object.
 message ObjectWrapper {
@@ -12,6 +13,9 @@ message ObjectWrapper {
   timestamp.Timestamp timestamp = 2;
   // EncBlob is the inner data of the object.
   objectenc.EncryptedBlob enc_blob = 3;
+  // Signatures contains the set of signatures attached to this object.
+  // The data signed is the enc_blob.enc_data data.
+  repeated objectsig.Signature signatures = 4;
 }
 
 // ObjectTypeID is an identifier for a type, hashed to get the object type crc.

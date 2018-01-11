@@ -10,7 +10,7 @@ import (
 	api "github.com/ipfs/go-ipfs-api"
 )
 
-// FileShell manages reading/writing pbobject from an IPFS API shell.
+// FileShell manages reading/writing pbobject from an IPFS API shell as file objects.
 type FileShell struct {
 	*api.Shell
 	objTable *pbobject.ObjectTable

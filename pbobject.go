@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/objectenc"
+	"github.com/aperturerobotics/objectsig"
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
+	"github.com/libp2p/go-libp2p-crypto"
 )
 
 // Object is a protobuf-encoded object.
@@ -45,6 +47,10 @@ type EncryptionConfig struct {
 	EncryptionType objectenc.EncryptionType
 	// ResourceLookup if set will be used to look up necessary keys and other data.
 	ResourceLookup objectenc.ResourceResolverFunc
+	// HashCode is the code of the hashing algorithm to use.
+	HashCode uint64
+	// SignerKeys are the keys to sign the buffer with when making an object wrapper.
+	SignerKeys []crypto.PrivKey
 }
 
 // GetContext returns the context.
@@ -68,6 +74,16 @@ func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timest
 		return nil, err
 	}
 
+	// Build the signatures.
+	var sigs []*objectsig.Signature
+	for _, signer := range econf.SignerKeys {
+		sig, err := objectsig.NewSignature(signer, econf.HashCode, data)
+		if err != nil {
+			return nil, err
+		}
+		sigs = append(sigs, sig)
+	}
+
 	encBlob, err := objectenc.EncryptWithResolver(ctx, econf.ResourceLookup, econf.EncryptionType, data)
 	if err != nil {
 		return nil, err
@@ -77,6 +93,7 @@ func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timest
 		ObjectTypeCrc: obj.GetObjectTypeID().GetCrc32(),
 		Timestamp:     &ts,
 		EncBlob:       encBlob,
+		Signatures:    sigs,
 	}, nil
 }
 
@@ -101,16 +118,16 @@ func (w *ObjectWrapper) DecodeToObject(obj Object, encConf EncryptionConfig) err
 }
 
 // objectTableKey is a pointer used as the key for object tables.
-var objectTableKey = &(struct{}{})
+var objectTableKey = struct{ objectTableKey string }{}
 
 // WithObjectTable attaches an object table to a context.
 func WithObjectTable(parent context.Context, table *ObjectTable) context.Context {
-	return context.WithValue(parent, objectTableKey, table)
+	return context.WithValue(parent, &objectTableKey, table)
 }
 
 // GetObjectTable returns the object table in the context.
 func GetObjectTable(ctx context.Context) *ObjectTable {
-	v := ctx.Value(objectTableKey)
+	v := ctx.Value(&objectTableKey)
 	if v == nil {
 		return nil
 	}
