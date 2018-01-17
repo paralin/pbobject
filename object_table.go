@@ -62,7 +62,8 @@ func (o *ObjectTable) DecodeWrapper(ctx context.Context, wrapper *ObjectWrapper)
 }
 
 // Encode attempts to encode the object using the registered encryption conf for the type.
-func (o *ObjectTable) Encode(ctx context.Context, obj Object) (*ObjectWrapper, error) {
+// Returns the unencrypted data as well.
+func (o *ObjectTable) Encode(ctx context.Context, obj Object) (*ObjectWrapper, []byte, error) {
 	var encConf EncryptionConfig
 	objType := obj.GetObjectTypeID().GetCrc32()
 	if encConfInter, ok := o.typeEncryptionMap.Load(objType); ok {

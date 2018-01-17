@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aperturerobotics/pbobject"
@@ -26,12 +27,12 @@ func TestObjectTable(t *testing.T) {
 	}
 
 	inObj := &mock.MockObject{Message: testMsg}
-	objw, err := pbobject.NewObjectWrapper(inObj, pbobject.EncryptionConfig{})
+	objw, _, err := pbobject.NewObjectWrapper(inObj, pbobject.EncryptionConfig{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	obj, err := table.DecodeWrapper(objw, pbobject.EncryptionConfig{})
+	obj, err := table.DecodeWrapper(context.Background(), objw)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

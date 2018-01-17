@@ -47,8 +47,6 @@ type EncryptionConfig struct {
 	EncryptionType objectenc.EncryptionType
 	// ResourceLookup if set will be used to look up necessary keys and other data.
 	ResourceLookup objectenc.ResourceResolverFunc
-	// HashCode is the code of the hashing algorithm to use.
-	HashCode uint64
 	// SignerKeys are the keys to sign the buffer with when making an object wrapper.
 	SignerKeys []crypto.PrivKey
 }
@@ -62,31 +60,32 @@ func (c *EncryptionConfig) GetContext() context.Context {
 }
 
 // NewObjectWrapper builds a new object wrapper.
-func NewObjectWrapper(obj Object, econf EncryptionConfig) (*ObjectWrapper, error) {
+// The unencrypted data is also returned for convenience.
+func NewObjectWrapper(obj Object, econf EncryptionConfig) (*ObjectWrapper, []byte, error) {
 	return NewObjectWrapperWithTimestamp(obj, econf, timestamp.Now())
 }
 
 // NewObjectWrapperWithTimestamp builds a new object wrapper with a preset timestamp.
-func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timestamp.Timestamp) (*ObjectWrapper, error) {
+func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timestamp.Timestamp) (*ObjectWrapper, []byte, error) {
 	ctx := econf.GetContext()
 	data, err := proto.Marshal(obj)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Build the signatures.
 	var sigs []*objectsig.Signature
 	for _, signer := range econf.SignerKeys {
-		sig, err := objectsig.NewSignature(signer, econf.HashCode, data)
+		sig, err := objectsig.NewSignature(signer, data)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		sigs = append(sigs, sig)
 	}
 
 	encBlob, err := objectenc.EncryptWithResolver(ctx, econf.ResourceLookup, econf.EncryptionType, data)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return &ObjectWrapper{
@@ -94,7 +93,7 @@ func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timest
 		Timestamp:     &ts,
 		EncBlob:       encBlob,
 		Signatures:    sigs,
-	}, nil
+	}, data, nil
 }
 
 // DecodeToObject decodes the object wrapper to a pre-identified object.

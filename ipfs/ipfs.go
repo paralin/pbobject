@@ -23,7 +23,7 @@ func NewFileShell(sh *api.Shell, objTable *pbobject.ObjectTable) *FileShell {
 
 // AddProtobufObject adds a protobuf object to IPFS and returns the hash.
 func (s *FileShell) AddProtobufObject(ctx context.Context, obj pbobject.Object) (string, error) {
-	objWrapper, err := s.objTable.Encode(ctx, obj)
+	objWrapper, _, err := s.objTable.Encode(ctx, obj)
 	if err != nil {
 		return "", err
 	}
