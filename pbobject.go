@@ -99,7 +99,7 @@ func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timest
 // DecodeToObject decodes the object wrapper to a pre-identified object.
 func (w *ObjectWrapper) DecodeToObject(obj Object, encConf EncryptionConfig) error {
 	expectedID := obj.GetObjectTypeID().GetCrc32()
-	if obj.GetObjectTypeID().GetCrc32() != w.ObjectTypeCrc {
+	if expectedID != w.ObjectTypeCrc {
 		return fmt.Errorf("object type mismatch: expected %d != actual %d", expectedID, w.ObjectTypeCrc)
 	}
 
