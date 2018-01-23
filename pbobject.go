@@ -11,6 +11,8 @@ import (
 	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-crypto"
+	lpeer "github.com/libp2p/go-libp2p-peer"
+	"github.com/pkg/errors"
 )
 
 // Object is a protobuf-encoded object.
@@ -49,6 +51,8 @@ type EncryptionConfig struct {
 	ResourceLookup objectenc.ResourceResolverFunc
 	// SignerKeys are the keys to sign the buffer with when making an object wrapper.
 	SignerKeys []crypto.PrivKey
+	// VerifyKeys requires the set of public keys to have signed the object.
+	VerifyKeys []crypto.PubKey
 }
 
 // GetContext returns the context.
@@ -107,6 +111,25 @@ func (w *ObjectWrapper) DecodeToObject(obj Object, encConf EncryptionConfig) err
 	objData, err := w.GetEncBlob().DecryptWithResolver(ctx, encConf.ResourceLookup)
 	if err != nil {
 		return err
+	}
+
+	// TODO: optimize
+VerifyLoop:
+	for _, ver := range encConf.VerifyKeys {
+		for _, sig := range w.Signatures {
+			if err := sig.Verify(ver, objData); err == nil {
+				continue VerifyLoop
+			}
+		}
+
+		var peerIDStr string
+		peerID, err := lpeer.IDFromPublicKey(ver)
+		if err != nil {
+			peerIDStr = err.Error()
+		} else {
+			peerIDStr = peerID.Pretty()
+		}
+		return errors.Errorf("object not signed by key: %s", peerIDStr)
 	}
 
 	if err := proto.Unmarshal(objData, obj); err != nil {

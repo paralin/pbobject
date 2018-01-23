@@ -14,7 +14,7 @@ message ObjectWrapper {
   // EncBlob is the inner data of the object.
   objectenc.EncryptedBlob enc_blob = 3;
   // Signatures contains the set of signatures attached to this object.
-  // The data signed is the enc_blob.enc_data data.
+  // The data signed is the unencrypted object data.
   repeated objectsig.Signature signatures = 4;
 }
 
