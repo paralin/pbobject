@@ -46,6 +46,9 @@ type EncryptionConfig struct {
 	SignerKeys []crypto.PrivKey
 	// VerifyKeys requires the set of public keys to have signed the object.
 	VerifyKeys []crypto.PubKey
+	// CompressionType is the compression type to use.
+	// Defaults to uncompressed
+	CompressionType objectenc.CompressionType
 }
 
 // GetContext returns the context.
@@ -80,7 +83,13 @@ func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timest
 		sigs = append(sigs, sig)
 	}
 
-	encBlob, err := objectenc.EncryptWithResolver(ctx, econf.ResourceLookup, econf.EncryptionType, data)
+	encBlob, err := objectenc.EncryptWithResolver(
+		ctx,
+		econf.ResourceLookup,
+		econf.EncryptionType,
+		econf.CompressionType,
+		data,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
