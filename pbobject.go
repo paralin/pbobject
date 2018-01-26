@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"hash/crc32"
-	"time"
 
 	"github.com/aperturerobotics/objectenc"
 	"github.com/aperturerobotics/objectsig"
@@ -21,12 +20,6 @@ type Object interface {
 
 	// GetObjectTypeID returns the object type string, used to identify types.
 	GetObjectTypeID() *ObjectTypeID
-}
-
-// TimestampAwareObject is an object that is aware of timestamps.
-type TimestampAwareObject interface {
-	// SetEncodedTimestamp sets the encoded timestamp of the object.
-	SetEncodedTimestamp(time.Time)
 }
 
 // NewObjectTypeID builds a new object type id.
@@ -94,7 +87,6 @@ func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timest
 
 	return &ObjectWrapper{
 		ObjectTypeCrc: obj.GetObjectTypeID().GetCrc32(),
-		Timestamp:     &ts,
 		EncBlob:       encBlob,
 		Signatures:    sigs,
 	}, data, nil

@@ -9,8 +9,6 @@ import "github.com/aperturerobotics/objectsig/objectsig.proto";
 message ObjectWrapper {
   // ObjectTypeCrc is the crc32 of the object type ID.
   uint32 object_type_crc = 1;
-  // Timestamp is the time this object was wrapped.
-  timestamp.Timestamp timestamp = 2;
   // EncBlob is the inner data of the object.
   objectenc.EncryptedBlob enc_blob = 3;
   // Signatures contains the set of signatures attached to this object.

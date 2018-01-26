@@ -88,9 +88,5 @@ func (o *ObjectTable) DecodeWrapperWithEncConf(wrapper *ObjectWrapper, encConf E
 	if err != nil {
 		return nil, err
 	}
-	if objts, ok := obj.(TimestampAwareObject); ok {
-		t := wrapper.GetTimestamp().ToTime()
-		objts.SetEncodedTimestamp(t)
-	}
 	return obj, nil
 }
