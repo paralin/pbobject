@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/objectenc"
 	"github.com/aperturerobotics/objectsig"
-	"github.com/aperturerobotics/timestamp"
 	"github.com/golang/protobuf/proto"
 	"github.com/libp2p/go-libp2p-crypto"
 	lpeer "github.com/libp2p/go-libp2p-peer"
@@ -62,11 +61,6 @@ func (c *EncryptionConfig) GetContext() context.Context {
 // NewObjectWrapper builds a new object wrapper.
 // The unencrypted data is also returned for convenience.
 func NewObjectWrapper(obj Object, econf EncryptionConfig) (*ObjectWrapper, []byte, error) {
-	return NewObjectWrapperWithTimestamp(obj, econf, timestamp.Now())
-}
-
-// NewObjectWrapperWithTimestamp builds a new object wrapper with a preset timestamp.
-func NewObjectWrapperWithTimestamp(obj Object, econf EncryptionConfig, ts timestamp.Timestamp) (*ObjectWrapper, []byte, error) {
 	ctx := econf.GetContext()
 	data, err := proto.Marshal(obj)
 	if err != nil {
@@ -117,8 +111,14 @@ func (w *ObjectWrapper) DecodeToObject(obj Object, encConf EncryptionConfig) err
 	// TODO: optimize
 VerifyLoop:
 	for _, ver := range encConf.VerifyKeys {
+		var verErr error
 		for _, sig := range w.Signatures {
-			if err := sig.Verify(ver, objData); err == nil {
+			if err := sig.MatchesPublicKey(ver); err != nil {
+				continue
+			}
+
+			verErr = sig.Verify(ver, objData)
+			if verErr == nil {
 				continue VerifyLoop
 			}
 		}
@@ -130,7 +130,12 @@ VerifyLoop:
 		} else {
 			peerIDStr = peerID.Pretty()
 		}
-		return errors.Errorf("object not signed by key: %s", peerIDStr)
+
+		if verErr == nil {
+			return errors.Errorf("object not signed by key: %s", peerIDStr)
+		}
+
+		return errors.WithMessage(verErr, fmt.Sprintf("key %s verify error", peerIDStr))
 	}
 
 	if err := proto.Unmarshal(objData, obj); err != nil {

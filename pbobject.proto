@@ -1,7 +1,6 @@
 syntax = "proto3";
 package pbobject;
 
-import "github.com/aperturerobotics/timestamp/timestamp.proto";
 import "github.com/aperturerobotics/objectenc/objectenc.proto";
 import "github.com/aperturerobotics/objectsig/objectsig.proto";
 
